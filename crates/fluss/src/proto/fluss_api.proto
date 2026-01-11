@@ -309,6 +309,16 @@ message PbKeyValue {
   required string value = 2;
 }
 
+message LookupKvRequest {
+  required PbTablePath table_path = 1;
+  required bytes key = 2;
+}
+
+message LookupKvResponse {
+  required bool found = 1;
+  optional string value = 2;
+}
+
 message GetFileSystemSecurityTokenRequest {
 }
 

@@ -35,6 +35,7 @@ pub enum ApiKey {
     GetFileSystemSecurityToken,
     GetDatabaseInfo,
     GetLatestLakeSnapshot,
+    LookupKv,
     Unknown(i16),
 }
 
@@ -56,6 +57,7 @@ impl From<i16> for ApiKey {
             1021 => ApiKey::ListOffsets,
             1025 => ApiKey::GetFileSystemSecurityToken,
             1032 => ApiKey::GetLatestLakeSnapshot,
+            1036 => ApiKey::LookupKv,
             1035 => ApiKey::GetDatabaseInfo,
             _ => Unknown(key),
         }
@@ -80,6 +82,7 @@ impl From<ApiKey> for i16 {
             ApiKey::ListOffsets => 1021,
             ApiKey::GetFileSystemSecurityToken => 1025,
             ApiKey::GetLatestLakeSnapshot => 1032,
+            ApiKey::LookupKv => 1036,
             ApiKey::GetDatabaseInfo => 1035,
             Unknown(x) => x,
         }
@@ -108,6 +111,7 @@ mod tests {
             (1021, ApiKey::ListOffsets),
             (1025, ApiKey::GetFileSystemSecurityToken),
             (1032, ApiKey::GetLatestLakeSnapshot),
+            (1036, ApiKey::LookupKv),
             (1035, ApiKey::GetDatabaseInfo),
         ];
 

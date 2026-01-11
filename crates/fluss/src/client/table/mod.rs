@@ -85,6 +85,55 @@ impl<'a> FlussTable<'a> {
     pub fn has_primary_key(&self) -> bool {
         self.has_primary_key
     }
+
+    /// Lookup a key in the kv storage for this table. Returns Ok(Some(value)) if found,
+    /// Ok(None) if not found. Only supported for primary-key tables.
+    pub async fn lookup_kv(&self, key: &[u8]) -> Result<Option<String>> {
+        use crate::bucketing::BucketingFunction;
+        use crate::error::Error;
+        use crate::rpc::message::LookupKvRequest;
+
+        if !self.has_primary_key() {
+            return Err(Error::UnexpectedError {
+                message: "The table is not primary key table.".to_string(),
+                source: None,
+            });
+        }
+
+        // Ensure metadata is up-to-date for this table
+        self.metadata
+            .check_and_update_table_metadata(std::slice::from_ref(&self.table_path))
+            .await?;
+
+        let cluster = self.metadata.get_cluster();
+        let num_buckets = cluster.get_bucket_count(&self.table_path);
+
+        // Use default bucketing function for now (no special data lake format)
+        let bucketing = <dyn BucketingFunction>::of(None);
+        let bucket_id = bucketing.bucketing(key, num_buckets)?;
+
+        let table_bucket = cluster.get_table_bucket(&self.table_path, bucket_id);
+
+        let leader = match self.metadata.leader_for(&table_bucket) {
+            Some(s) => s,
+            None => {
+                return Err(Error::UnexpectedError {
+                    message: format!("No leader found for table bucket {table_bucket}"),
+                    source: None,
+                });
+            }
+        };
+
+        let connection = self.metadata.get_connection(&leader).await?;
+        let request = LookupKvRequest::new(&self.table_path, key);
+        let response = connection.request(request).await?;
+
+        if response.found {
+            Ok(response.value)
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 impl<'a> Drop for FlussTable<'a> {
